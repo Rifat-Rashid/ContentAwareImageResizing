@@ -34,8 +34,12 @@ public class JBackground extends JPanel {
     }
 
     // given a (x,y) coordinate, replace the color with color c
-    public void setPixelColor(int x, int y, Color c){
+    public void setPixelColor(int x, int y, Color c) {
         img.setRGB(x, y, c.getRGB());
+    }
+
+    public void setImg(BufferedImage img) {
+        this.img = img;
     }
 
     @Override

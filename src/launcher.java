@@ -13,10 +13,14 @@ public class launcher {
 
     public static EnergyData[][] energyMatrix;
     public static BufferedImage cachedImage;
+
     public static double maxEnergy = Double.MIN_VALUE;
     public static double minEnergy = Double.MAX_VALUE;
+
     public static double maxNum = Double.MIN_VALUE;
     public static double minNum = Double.MAX_VALUE;
+
+    public static float magicNumber = (float) (1.0 / Math.sqrt(6)); //dont mess with this.
 
     // possible IO exception when loading image from file...
     // see @JBackground.java constructor
@@ -38,30 +42,41 @@ public class launcher {
         r.add(pane, BorderLayout.CENTER);
         r.setVisible(true);
 
-        calculateEnergy(cachedImage);
-        drawEnergyFilter(bg);
-        preparePath();
+        for(int i = 0; i < 200; i++) {
+            calculateEnergy(cachedImage);
+            //drawEnergyFilter(bg);
+            preparePath();
+            BufferedImage postProcessed = new BufferedImage(cachedImage.getWidth() - 1, cachedImage.getHeight(), 1); // type 1 = RGB
+
+            // calculate lowest energy seam
+            int col = getBestEnergyColumn();
+            for (int row = energyMatrix.length - 2; row >= 0; row--) {
+                //bg.setPixelColor(col, row, Color.RED);
+                //bg.repaint();
+                int[] leftOfSeam = cachedImage.getRGB(0, row, col, 1, null, 0, col);
+                int[] rightOfSeam = cachedImage.getRGB(col + 1, row, cachedImage.getWidth() - (col + 1), 1, null, 0, cachedImage.getWidth() - (col + 1));
+                postProcessed.setRGB(0, row, col, 1, leftOfSeam, 0, col);
+                postProcessed.setRGB(col, row, cachedImage.getWidth() - (col + 1), 1, rightOfSeam, 0, cachedImage.getWidth() - (col + 1));
+
+                System.out.println(row + ", " + col + ", " + energyMatrix[row][col].direction);
+                if (energyMatrix[row][col].direction != null) { // -1, 0, 1 (left, up, right)
+                    col += energyMatrix[row][col].direction.delta;
+                }
+            }
 
 
-        // calculate lowest energy seam
-        int col = getBestEnergyColumn();
-        for (int row = energyMatrix.length - 2; row >= 0; row--) {
-            bg.setPixelColor(col, row, Color.RED);
-            //EnergyData[] temp = new EnergyData[energyMatrix[0].length - 1];
-            //System.arraycopy(energyMatrix[row], 0, temp, 0, col - 1);
-            //System.arraycopy(energyMatrix[row], col + 1, temp, col + 1, energyMatrix[0].length - col);
-            //editedData[row] = temp;
+
+            bg.setImg(postProcessed);
+            cachedImage = postProcessed; // dont change. ever.
             bg.repaint();
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException ex) {
-                ex.printStackTrace();
-            }
-            System.out.println(row + ", " + col + ", " + energyMatrix[row][col].direction);
-            if (energyMatrix[row][col].direction != null) {
-                col += energyMatrix[row][col].direction.delta;
-            }
+            energyMatrix = new EnergyData[bg.getBackgroundImageDimensions().y][bg.getBackgroundImageDimensions().x]; //2D array: row, column.
         }
+
+
+
+
+
+
 
 
         //all energy seams
@@ -161,6 +176,7 @@ public class launcher {
     // source: https://stackoverflow.com/questions/22218140/calculate-the-color-at-a-given-point-on-a-gradient-between-two-colors?noredirect=1&lq=1
     // calculate the RGB color between color1 and color2
     public static Color getIndexedColor(Color color1, Color color2, float percent) {
+        percent = (float) Math.pow(percent, magicNumber);
         double rRed = color1.getRed() + percent * (color2.getRed() - color1.getRed());
         double rGreen = color1.getGreen() + percent * (color2.getGreen() - color1.getGreen());
         double rBlue = color1.getBlue() + percent * (color2.getBlue() - color1.getBlue());
