@@ -36,37 +36,11 @@ public class launcher {
         cachedImage = bg.getImage();
         r.setMaximumSize(new Dimension(bg.getBackgroundImageDimensions().x, bg.getBackgroundImageDimensions().y));
         r.add(pane, BorderLayout.CENTER);
-
         r.setVisible(true);
 
         calculateEnergy(cachedImage);
-        /*
-        for (EnergyData[] t : energyMatrix) {
-            System.out.println(Arrays.toString(t));
-        }
-
-        */
-        // custom unit testing...
-
-
-        for (int i = 0; i < energyMatrix.length; i++) {
-            for (int j = 0; j < energyMatrix[i].length; j++) {
-                EnergyData energyValue = energyMatrix[i][j];
-                double ExDiff = energyValue.rawValue / maxEnergy;
-                Color diffxColor = getIndexedColor(Color.black, Color.white, (float) ExDiff);
-                bg.setPixelColor(j, i, diffxColor);
-                bg.repaint();
-            }
-        }
-
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException ex) {
-            ex.printStackTrace();
-        }
-
-
-        preparePath();
+        drawEnergyFilter(bg);
+        //preparePath();
 
 
         // custom unit testing...
@@ -146,6 +120,7 @@ public class launcher {
     }
 
     // see calculateEnergy() method -> test from princeton resource
+    // EDIT: Not used in final build. Used for testing dual gradient function
     public static void EnergyTest() {
         // imageType (1) == RGB
         BufferedImage b = new BufferedImage(3, 4, 1);
@@ -171,7 +146,19 @@ public class launcher {
         for (EnergyData[] t : energyMatrix) {
             System.out.println(Arrays.toString(t));
         }
+    }
 
+    // draws the energy gradient
+    public static void drawEnergyFilter(JBackground bg) {
+        for (int i = 0; i < energyMatrix.length; i++) {
+            for (int j = 0; j < energyMatrix[i].length; j++) {
+                EnergyData energyValue = energyMatrix[i][j];
+                double ExDiff = energyValue.rawValue / maxEnergy;
+                Color diffxColor = getIndexedColor(Color.black, Color.white, (float) ExDiff);
+                bg.setPixelColor(j, i, diffxColor);
+                bg.repaint();
+            }
+        }
     }
 
     // source: https://stackoverflow.com/questions/22218140/calculate-the-color-at-a-given-point-on-a-gradient-between-two-colors?noredirect=1&lq=1
@@ -241,6 +228,7 @@ public class launcher {
         }
     }
 
+    // magic...
     public static void preparePath() {
         // Initialize the first row
         for (int col = 0; col < energyMatrix[0].length; col++) {
