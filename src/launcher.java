@@ -24,7 +24,7 @@ public class launcher {
         final JFrame r = new JFrame();
         JBackground bg = null;
         try {
-            bg = new JBackground("images/ocean.png");
+            bg = new JBackground("images/tower.jpg");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -40,45 +40,17 @@ public class launcher {
 
         calculateEnergy(cachedImage);
         drawEnergyFilter(bg);
-        //preparePath();
+        preparePath();
 
-
-        // custom unit testing...
-        /*
-        for (int i = 0; i < energyMatrix.length; i++) {
-            for (int j = 0; j < energyMatrix[i].length; j++) {
-                EnergyData energyValue = energyMatrix[i][j];
-                double ExDiff = energyValue.num / maxNum;
-                Color diffxColor = getIndexedColor(Color.black, Color.white, (float) ExDiff);
-                bg.setPixelColor(j, i, diffxColor);
-                bg.repaint();
-            }
-        }
-
-*/
-        // First find the best starting column
-        /*
-        int bestCol = 0;
-        double bestNum = Double.MAX_VALUE;
-        for (int col = 0; col < energyMatrix[energyMatrix.length - 1].length; col++) {
-            EnergyData data = energyMatrix[energyMatrix.length - 1][col];
-            if (data.num < bestNum) {
-                bestNum = data.num;
-                bestCol = col;
-            }
-        }
-       // Pixel[][] editedData = new Pixel[energyMatrix.length][energyMatrix[0].length - 1];
 
         // calculate lowest energy seam
-        int col = bestCol;
+        int col = getBestEnergyColumn();
         for (int row = energyMatrix.length - 2; row >= 0; row--) {
             bg.setPixelColor(col, row, Color.RED);
-
             //EnergyData[] temp = new EnergyData[energyMatrix[0].length - 1];
             //System.arraycopy(energyMatrix[row], 0, temp, 0, col - 1);
             //System.arraycopy(energyMatrix[row], col + 1, temp, col + 1, energyMatrix[0].length - col);
             //editedData[row] = temp;
-
             bg.repaint();
             try {
                 Thread.sleep(10);
@@ -90,7 +62,6 @@ public class launcher {
                 col += energyMatrix[row][col].direction.delta;
             }
         }
-
 
 
         //all energy seams
@@ -159,6 +130,32 @@ public class launcher {
                 bg.repaint();
             }
         }
+    }
+
+    // @Define
+    public static void drawSeamGradientFilter(JBackground bg) {
+        for (int i = 0; i < energyMatrix.length; i++) {
+            for (int j = 0; j < energyMatrix[i].length; j++) {
+                EnergyData energyValue = energyMatrix[i][j];
+                double ExDiff = energyValue.num / maxNum;
+                Color diffxColor = getIndexedColor(Color.black, Color.white, (float) ExDiff);
+                bg.setPixelColor(j, i, diffxColor);
+                bg.repaint();
+            }
+        }
+    }
+
+    public static int getBestEnergyColumn() {
+        int bestCol = 0;
+        double bestNum = Double.MAX_VALUE;
+        for (int col = 0; col < energyMatrix[energyMatrix.length - 1].length; col++) {
+            EnergyData data = energyMatrix[energyMatrix.length - 1][col];
+            if (data.num < bestNum) {
+                bestNum = data.num;
+                bestCol = col;
+            }
+        }
+        return bestCol;
     }
 
     // source: https://stackoverflow.com/questions/22218140/calculate-the-color-at-a-given-point-on-a-gradient-between-two-colors?noredirect=1&lq=1
