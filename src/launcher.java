@@ -20,6 +20,9 @@ public class launcher {
     public static double maxNum = Double.MIN_VALUE;
     public static double minNum = Double.MAX_VALUE;
 
+    public static int maxColumn = Integer.MIN_VALUE;
+    public static int minColumn = Integer.MAX_VALUE;
+
     public static float magicNumber = (float) (1.0 / Math.sqrt(6)); //dont mess with this.
 
     // possible IO exception when loading image from file...
@@ -36,72 +39,52 @@ public class launcher {
         bg.setSize(bg.getPreferredSize());
         JScrollPane pane = new JScrollPane(bg);
         r.setSize(bg.getBackgroundImageDimensions().x, bg.getBackgroundImageDimensions().y);
+
         energyMatrix = new EnergyData[bg.getBackgroundImageDimensions().y][bg.getBackgroundImageDimensions().x]; //2D array: row, column.
         cachedImage = bg.getImage();
         r.setMaximumSize(new Dimension(bg.getBackgroundImageDimensions().x, bg.getBackgroundImageDimensions().y));
         r.add(pane, BorderLayout.CENTER);
         r.setVisible(true);
+        //calculateEnergy(cachedImage, null, 1);
+       // calculateEnergy(cachedImage, null, 1);
+        //drawEnergyFilter(bg);
 
-        for(int i = 0; i < 200; i++) {
-            calculateEnergy(cachedImage);
-            //drawEnergyFilter(bg);
+
+        for (int i = 0; i < 500; i++) {
+            energyMatrix = new EnergyData[bg.getBackgroundImageDimensions().y][bg.getBackgroundImageDimensions().x]; //2D array: row, column.
+            calculateEnergy(cachedImage, null, 1);
             preparePath();
             BufferedImage postProcessed = new BufferedImage(cachedImage.getWidth() - 1, cachedImage.getHeight(), 1); // type 1 = RGB
+            //EnergyData[][] newEnergy = new EnergyData[postProcessed.getHeight()][postProcessed.getWidth()];
 
             // calculate lowest energy seam
             int col = getBestEnergyColumn();
             for (int row = energyMatrix.length - 2; row >= 0; row--) {
-                //bg.setPixelColor(col, row, Color.RED);
-                //bg.repaint();
+                bg.setPixelColor(col, row, Color.RED);
+                bg.repaint();
+
+
                 int[] leftOfSeam = cachedImage.getRGB(0, row, col, 1, null, 0, col);
                 int[] rightOfSeam = cachedImage.getRGB(col + 1, row, cachedImage.getWidth() - (col + 1), 1, null, 0, cachedImage.getWidth() - (col + 1));
+
                 postProcessed.setRGB(0, row, col, 1, leftOfSeam, 0, col);
                 postProcessed.setRGB(col, row, cachedImage.getWidth() - (col + 1), 1, rightOfSeam, 0, cachedImage.getWidth() - (col + 1));
 
-                System.out.println(row + ", " + col + ", " + energyMatrix[row][col].direction);
+
+                //System.arraycopy(energyMatrix[row], 0, newEnergy[row], 0, col);
+                //System.arraycopy(energyMatrix[row], col + 1, newEnergy[row], col, cachedImage.getWidth() - (col + 1));
+
+               // System.out.println(row + ", " + col + ", " + energyMatrix[row][col].direction);
                 if (energyMatrix[row][col].direction != null) { // -1, 0, 1 (left, up, right)
                     col += energyMatrix[row][col].direction.delta;
                 }
+
             }
-
-
-
             bg.setImg(postProcessed);
             cachedImage = postProcessed; // dont change. ever.
             bg.repaint();
-            energyMatrix = new EnergyData[bg.getBackgroundImageDimensions().y][bg.getBackgroundImageDimensions().x]; //2D array: row, column.
+            //energyMatrix = newEnergy;
         }
-
-
-
-
-
-
-
-
-        //all energy seams
-        /*
-
-        for (int i = 0; i < energyMatrix[energyMatrix.length - 1].length; i++) {
-            int tempCol = i;
-            System.out.println("At Col: " + tempCol);
-            for (int row = energyMatrix.length - 2; row >= 0; row--) {
-                bg.setPixelColor(tempCol, row, Color.RED);
-                bg.repaint();
-
-                /*
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException ex) {
-                    ex.printStackTrace();
-                }
-
-                if (energyMatrix[row][tempCol].direction != null) {
-                    tempCol += energyMatrix[row][tempCol].direction.delta;
-                }
-            }
-        }
-        */
 
     }
 
@@ -128,7 +111,7 @@ public class launcher {
 
         energyMatrix = new EnergyData[b.getHeight()][b.getWidth()];
 
-        calculateEnergy(b);
+       // calculateEnergy(b);
         for (EnergyData[] t : energyMatrix) {
             System.out.println(Arrays.toString(t));
         }
@@ -186,9 +169,11 @@ public class launcher {
 
     // using dual gradient for calculating energy of each pixel
     // Adapted from: http://www.cs.princeton.edu/courses/archive/spr13/cos226/assignments/seamCarving.html
-    public static void calculateEnergy(BufferedImage img) {
+    public static void calculateEnergy(BufferedImage img, Integer colS, int colE) {
         for (int row = 0; row < energyMatrix.length; row++) {
-            for (int col = 0; col < energyMatrix[row].length; col++) {
+            int col = (colS == null) ? 0 : colS;
+            int colMax = (colS == null) ? energyMatrix[row].length : colE;
+            for (; col < colMax; col++) {
                 Pixel Rx1; // right pixel
                 Pixel Rx2; // left pixel
                 //----------
