@@ -14,7 +14,7 @@ public class EnergyData {
     public EnergyData(double rawValue) {
         this.rawValue = rawValue;
     }
-    public double rawValue;
+    public double rawValue; // energy value
     public double num;
     public Direction direction = null;
 

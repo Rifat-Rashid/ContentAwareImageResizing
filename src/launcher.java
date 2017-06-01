@@ -5,6 +5,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 
 /**
  * Created by DevWork on 5/23/17.
@@ -31,7 +32,7 @@ public class launcher {
         final JFrame r = new JFrame();
         JBackground bg = null;
         try {
-            bg = new JBackground("images/tower.jpg");
+            bg = new JBackground("images/flower.jpg");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -45,36 +46,26 @@ public class launcher {
         r.setMaximumSize(new Dimension(bg.getBackgroundImageDimensions().x, bg.getBackgroundImageDimensions().y));
         r.add(pane, BorderLayout.CENTER);
         r.setVisible(true);
-        //calculateEnergy(cachedImage, null, 1);
-       // calculateEnergy(cachedImage, null, 1);
+        calculateEnergy(cachedImage, null, 1);
         //drawEnergyFilter(bg);
 
 
-        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < 300; i++) {
             energyMatrix = new EnergyData[bg.getBackgroundImageDimensions().y][bg.getBackgroundImageDimensions().x]; //2D array: row, column.
             calculateEnergy(cachedImage, null, 1);
             preparePath();
             BufferedImage postProcessed = new BufferedImage(cachedImage.getWidth() - 1, cachedImage.getHeight(), 1); // type 1 = RGB
-            //EnergyData[][] newEnergy = new EnergyData[postProcessed.getHeight()][postProcessed.getWidth()];
 
             // calculate lowest energy seam
             int col = getBestEnergyColumn();
             for (int row = energyMatrix.length - 2; row >= 0; row--) {
                 bg.setPixelColor(col, row, Color.RED);
                 bg.repaint();
-
-
                 int[] leftOfSeam = cachedImage.getRGB(0, row, col, 1, null, 0, col);
                 int[] rightOfSeam = cachedImage.getRGB(col + 1, row, cachedImage.getWidth() - (col + 1), 1, null, 0, cachedImage.getWidth() - (col + 1));
-
                 postProcessed.setRGB(0, row, col, 1, leftOfSeam, 0, col);
                 postProcessed.setRGB(col, row, cachedImage.getWidth() - (col + 1), 1, rightOfSeam, 0, cachedImage.getWidth() - (col + 1));
-
-
-                //System.arraycopy(energyMatrix[row], 0, newEnergy[row], 0, col);
-                //System.arraycopy(energyMatrix[row], col + 1, newEnergy[row], col, cachedImage.getWidth() - (col + 1));
-
-               // System.out.println(row + ", " + col + ", " + energyMatrix[row][col].direction);
+                // System.out.println(row + ", " + col + ", " + energyMatrix[row][col].direction);
                 if (energyMatrix[row][col].direction != null) { // -1, 0, 1 (left, up, right)
                     col += energyMatrix[row][col].direction.delta;
                 }
@@ -86,35 +77,67 @@ public class launcher {
             //energyMatrix = newEnergy;
         }
 
+
+        //ATTEMPT AT OPTIMIZING DRAWING CALCULATIONS: TESTING PHASE!!
+
+        /*
+        energyMatrix = new EnergyData[bg.getBackgroundImageDimensions().y][bg.getBackgroundImageDimensions().x];
+        calculateEnergy(cachedImage, null, 1);
+        for (int i = 0; i < 500; i++) {
+            EnergyData[][] tempEnergyMatrix = energyMatrix;
+            preparePath();
+            BufferedImage postProcessedIMG = new BufferedImage(cachedImage.getWidth() - 1, cachedImage.getHeight(), 1);
+            int col = getBestEnergyColumn();
+            int tempCol = col;
+            for (int row = energyMatrix.length - 2; row >= 0; row--) {
+                EnergyData[] postRemovalEnergyData = new EnergyData[energyMatrix[row].length - 1]; // because we want it to be 1 pixel smaller
+                System.out.println(row + ", " + col);
+                if (col >= 0) {
+                    postRemovalEnergyData = combineEnergySeams(Arrays.copyOfRange(energyMatrix[row], 0, col), Arrays.copyOfRange(energyMatrix[row], col + 1, energyMatrix[row].length));
+                    tempEnergyMatrix[row] = postRemovalEnergyData;
+                    int[] leftOfSeam = cachedImage.getRGB(0, row, col, 1, null, 0, col);
+                    int[] rightOfSeam = cachedImage.getRGB(col + 1, row, cachedImage.getWidth() - (col + 1), 1, null, 0, cachedImage.getWidth() - (col + 1));
+                    postProcessedIMG.setRGB(0, row, col, 1, leftOfSeam, 0, col);
+                    postProcessedIMG.setRGB(col, row, cachedImage.getWidth() - (col + 1), 1, rightOfSeam, 0, cachedImage.getWidth() - (col + 1));
+                } else {
+                    //postRemovalEnergyData = combineEnergySeams(Arrays.copyOfRange(energyMatrix[row], 0, col), Arrays.copyOfRange(energyMatrix[row], col + 1, energyMatrix[row].length));
+                    tempEnergyMatrix[row] = Arrays.copyOfRange(energyMatrix[row], col + 1, energyMatrix[row].length);
+                    int[] rightOfSeam = cachedImage.getRGB(col + 1, row, cachedImage.getWidth() - (col + 1), 1, null, 0, cachedImage.getWidth() - (col + 1));
+                    postProcessedIMG.setRGB(col, row, cachedImage.getWidth() - (col + 1), 1, rightOfSeam, 0, cachedImage.getWidth() - (col + 1));
+                }
+               // int[] leftOfSeam = cachedImage.getRGB(0, row, col, 1, null, 0, col);
+               // int[] rightOfSeam = cachedImage.getRGB(col + 1, row, cachedImage.getWidth() - (col + 1), 1, null, 0, cachedImage.getWidth() - (col + 1));
+               // postProcessedIMG.setRGB(0, row, col, 1, leftOfSeam, 0, col);
+               // postProcessedIMG.setRGB(col, row, cachedImage.getWidth() - (col + 1), 1, rightOfSeam, 0, cachedImage.getWidth() - (col + 1));
+                if (energyMatrix[row][col].direction != null) { // -1, 0, 1 (left, up, right)
+                    col += energyMatrix[row][col].direction.delta;
+                }
+            }
+            bg.setImg(postProcessedIMG);
+            cachedImage = postProcessedIMG; // dont change. ever.
+            energyMatrix = tempEnergyMatrix;
+            bg.repaint();
+
+            for (int ra = energyMatrix.length - 2; ra >= 0; ra--) {
+                energyMatrix[ra][tempCol - 1].rawValue = getEnergyAtPixel(cachedImage, ra, tempCol - 1);
+                energyMatrix[ra][tempCol].rawValue = getEnergyAtPixel(cachedImage, ra, tempCol);
+                if (energyMatrix[ra][tempCol].direction != null) { // -1, 0, 1 (left, up, right)
+                    tempCol += energyMatrix[ra][tempCol].direction.delta;
+                }
+            }
+        }
+        */
+
+
     }
 
-    // see calculateEnergy() method -> test from princeton resource
-    // EDIT: Not used in final build. Used for testing dual gradient function
-    public static void EnergyTest() {
-        // imageType (1) == RGB
-        BufferedImage b = new BufferedImage(3, 4, 1);
-        b.setRGB(0, 0, new Color(255, 101, 51).getRGB());
-        b.setRGB(1, 0, new Color(255, 101, 153).getRGB());
-        b.setRGB(2, 0, new Color(255, 101, 255).getRGB());
-
-        b.setRGB(0, 1, new Color(255, 153, 51).getRGB());
-        b.setRGB(1, 1, new Color(255, 153, 153).getRGB());
-        b.setRGB(2, 1, new Color(255, 153, 255).getRGB());
-
-        b.setRGB(0, 2, new Color(255, 203, 51).getRGB());
-        b.setRGB(1, 2, new Color(255, 204, 153).getRGB());
-        b.setRGB(2, 2, new Color(255, 205, 255).getRGB());
-
-        b.setRGB(0, 3, new Color(255, 255, 51).getRGB());
-        b.setRGB(1, 3, new Color(255, 255, 153).getRGB());
-        b.setRGB(2, 3, new Color(255, 255, 255).getRGB());
-
-        energyMatrix = new EnergyData[b.getHeight()][b.getWidth()];
-
-       // calculateEnergy(b);
-        for (EnergyData[] t : energyMatrix) {
-            System.out.println(Arrays.toString(t));
-        }
+    public static EnergyData[] combineEnergySeams(EnergyData[] a, EnergyData[] b) {
+        int aLen = a.length;
+        int bLen = b.length;
+        EnergyData[] c = new EnergyData[aLen + bLen];
+        System.arraycopy(a, 0, c, 0, aLen);
+        System.arraycopy(b, 0, c, aLen, bLen);
+        return c;
     }
 
     // draws the energy gradient
@@ -143,6 +166,7 @@ public class launcher {
         }
     }
 
+
     public static int getBestEnergyColumn() {
         int bestCol = 0;
         double bestNum = Double.MAX_VALUE;
@@ -169,61 +193,64 @@ public class launcher {
 
     // using dual gradient for calculating energy of each pixel
     // Adapted from: http://www.cs.princeton.edu/courses/archive/spr13/cos226/assignments/seamCarving.html
-    public static void calculateEnergy(BufferedImage img, Integer colS, int colE) {
+    public static void calculateEnergy(BufferedImage img) {
         for (int row = 0; row < energyMatrix.length; row++) {
-            int col = (colS == null) ? 0 : colS;
-            int colMax = (colS == null) ? energyMatrix[row].length : colE;
-            for (; col < colMax; col++) {
-                Pixel Rx1; // right pixel
-                Pixel Rx2; // left pixel
-                //----------
-                Pixel Ry1; // top pixel
-                Pixel Ry2; // bottom pixel
-                //----------
-                double RxDelta; // delta of x set pixels
-                double RyDelta; // delta of y set pixels
-                //----------
-                double energy; // energy of pixel: RxDelta + RyDelta
-
-                // grab X coordinate Pixels
-                if (col == 0) {
-                    Rx1 = new Pixel(new Color(img.getRGB(col + 1, row)));
-                    Rx2 = new Pixel(new Color(img.getRGB(energyMatrix[0].length - 1, row)));
-                } else if (col == energyMatrix[0].length - 1) {
-                    Rx1 = new Pixel(new Color(img.getRGB(0, row)));
-                    Rx2 = new Pixel(new Color(img.getRGB(col - 1, row)));
-                } else {
-                    Rx1 = new Pixel(new Color(img.getRGB(col + 1, row)));
-                    Rx2 = new Pixel(new Color(img.getRGB(col - 1, row)));
-                }
-
-                // grab Y coordinate Pixels
-                if (row == 0) {
-                    Ry1 = new Pixel(new Color(img.getRGB(col, energyMatrix.length - 1)));
-                    Ry2 = new Pixel(new Color(img.getRGB(col, row + 1)));
-                } else if (row == energyMatrix.length - 1) {
-                    Ry1 = new Pixel(new Color(img.getRGB(col, row - 1)));
-                    Ry2 = new Pixel(new Color(img.getRGB(col, 0)));
-                } else {
-                    Ry1 = new Pixel(new Color(img.getRGB(col, row - 1)));
-                    Ry2 = new Pixel(new Color(img.getRGB(col, row + 1)));
-                }
-
-                // color operations @see resource
-                RxDelta = Math.pow(Math.abs(Rx1.R - Rx2.R), 2) +
-                        Math.pow(Math.abs((Rx1.G - Rx2.G)), 2) +
-                        Math.pow(Math.abs((Rx1.B - Rx2.B)), 2);
-
-                RyDelta = Math.pow(Math.abs(Ry1.R - Ry2.R), 2) +
-                        Math.pow(Math.abs(Ry1.G - Ry2.G), 2) +
-                        Math.pow(Math.abs(Ry1.B - Ry2.B), 2);
-
-                energy = RxDelta + RyDelta;
+            for (int col = 0; col < energyMatrix[row].length; col++) {
+                double energy = getEnergyAtPixel(img, row, col);
                 maxEnergy = (energy > maxEnergy) ? energy : maxEnergy;
                 minEnergy = (energy < minEnergy) ? energy : minEnergy;
                 energyMatrix[row][col] = new EnergyData(energy);
             }
         }
+    }
+
+    // calculates the energy of a pixel at (col, row) given an image
+    public static double getEnergyAtPixel(BufferedImage img, int row, int col) {
+        Pixel Rx1; // right pixel
+        Pixel Rx2; // left pixel
+        //----------
+        Pixel Ry1; // top pixel
+        Pixel Ry2; // bottom pixel
+        //----------
+        double RxDelta; // delta of x set pixels
+        double RyDelta; // delta of y set pixels
+        //----------
+        double energy; // energy of pixel: RxDelta + RyDelta @Unused
+
+        // grab X coordinate Pixels
+        if (col == 0) {
+            Rx1 = new Pixel(new Color(img.getRGB(col + 1, row)));
+            Rx2 = new Pixel(new Color(img.getRGB(energyMatrix[0].length - 1, row)));
+        } else if (col == energyMatrix[0].length - 1) {
+            Rx1 = new Pixel(new Color(img.getRGB(0, row)));
+            Rx2 = new Pixel(new Color(img.getRGB(col - 1, row)));
+        } else {
+            Rx1 = new Pixel(new Color(img.getRGB(col + 1, row)));
+            Rx2 = new Pixel(new Color(img.getRGB(col - 1, row)));
+        }
+
+        // grab Y coordinate Pixels
+        if (row == 0) {
+            Ry1 = new Pixel(new Color(img.getRGB(col, energyMatrix.length - 1)));
+            Ry2 = new Pixel(new Color(img.getRGB(col, row + 1)));
+        } else if (row == energyMatrix.length - 1) {
+            Ry1 = new Pixel(new Color(img.getRGB(col, row - 1)));
+            Ry2 = new Pixel(new Color(img.getRGB(col, 0)));
+        } else {
+            Ry1 = new Pixel(new Color(img.getRGB(col, row - 1)));
+            Ry2 = new Pixel(new Color(img.getRGB(col, row + 1)));
+        }
+
+        // color operations @see resource
+        RxDelta = Math.pow(Math.abs(Rx1.R - Rx2.R), 2) +
+                Math.pow(Math.abs((Rx1.G - Rx2.G)), 2) +
+                Math.pow(Math.abs((Rx1.B - Rx2.B)), 2);
+
+        RyDelta = Math.pow(Math.abs(Ry1.R - Ry2.R), 2) +
+                Math.pow(Math.abs(Ry1.G - Ry2.G), 2) +
+                Math.pow(Math.abs(Ry1.B - Ry2.B), 2);
+
+        return RxDelta + RyDelta;
     }
 
     // magic...
