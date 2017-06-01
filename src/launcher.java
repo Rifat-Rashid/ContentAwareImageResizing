@@ -46,13 +46,13 @@ public class launcher {
         r.setMaximumSize(new Dimension(bg.getBackgroundImageDimensions().x, bg.getBackgroundImageDimensions().y));
         r.add(pane, BorderLayout.CENTER);
         r.setVisible(true);
-        calculateEnergy(cachedImage, null, 1);
+        calculateEnergy(cachedImage);
         //drawEnergyFilter(bg);
 
 
         for (int i = 0; i < 300; i++) {
             energyMatrix = new EnergyData[bg.getBackgroundImageDimensions().y][bg.getBackgroundImageDimensions().x]; //2D array: row, column.
-            calculateEnergy(cachedImage, null, 1);
+            calculateEnergy(cachedImage);
             preparePath();
             BufferedImage postProcessed = new BufferedImage(cachedImage.getWidth() - 1, cachedImage.getHeight(), 1); // type 1 = RGB
 
